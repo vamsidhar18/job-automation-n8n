@@ -62,7 +62,7 @@ export N8N_EXTERNAL_FRONTEND_HOOKS_URLS=${WEBHOOK_URL}
 
 echo "✅ n8n v1.68+ configured for massive job automation"
 echo "🌐 n8n URL: ${WEBHOOK_URL}"
-echo "📧 Owner Email: ${N8N_OWNER_EMAIL}"
+echo "📧 Owner Email: vdr1800@gmail.com"
 echo "🔧 Database: SQLite"
 echo "🎭 Browsers: Playwright (Chromium + Firefox + Webkit)"
 echo "🎯 Max Concurrent Jobs: 100"
