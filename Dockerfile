@@ -1,49 +1,64 @@
-# Base image with Node and Ubuntu for Playwright compatibility
-FROM mcr.microsoft.com/playwright:v1.43.1-jammy
+# n8n + Playwright on Ubuntu base for Railway Pro compatibility
+FROM ubuntu:22.04
 
-# Set working directory
-WORKDIR /app
-
-# All commands run as 'root' by default from here
-# Install core dependencies, n8n, and playwright with its system dependencies
+# Install Node.js and system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    gnupg \
-    ca-certificates \
     wget \
-    sqlite3 \
+    gnupg \
+    lsb-release \
+    ca-certificates \
     xvfb \
-    sed \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-RUN npm install -g n8n
 
-# Run playwright install as root to allow system dependency installation
-RUN npx playwright install --with-deps
+# Install n8n
+RUN npm install -g n8n@1.68.0
 
-# Create the home and config directory for the non-root user 'pwuser'
-RUN mkdir -p /home/pwuser/.n8n && chown -R pwuser:pwuser /home/pwuser
+# Install Playwright and browsers (Ubuntu native support)
+RUN npm install -g \
+    playwright \
+    puppeteer \
+    puppeteer-extra \
+    puppeteer-extra-plugin-stealth \
+    @playwright/test
 
-# Copy config files and set ownership to the non-root user
-COPY --chown=pwuser:pwuser n8n-config.json /home/pwuser/.n8n/config.json
-COPY start-n8n-latest.sh /usr/local/bin/start-n8n
-RUN chmod +x /usr/local/bin/start-n8n
+# Install Playwright browsers with dependencies (this works on Ubuntu!)
+RUN npx playwright install --with-deps chromium firefox webkit
 
-# ADDED: Fix Windows line endings in the script to make it executable on Linux
-RUN sed -i 's/\r$//' /usr/local/bin/start-n8n
+# Create n8n user and directories
+RUN useradd -m -s /bin/bash node
+USER node
+WORKDIR /home/node
 
-# NOW we switch to the non-root user for security
-USER pwuser
+RUN mkdir -p /home/node/.n8n/nodes \
+    && mkdir -p /home/node/.n8n/custom \
+    && mkdir -p /home/node/.n8n/workflows \
+    && mkdir -p /home/node/.n8n/credentials
 
-# Set user's home directory for n8n and other tools
-ENV HOME=/home/pwuser
-WORKDIR /home/pwuser
+# Copy configuration files to the correct path
+COPY --chown=node:node n8n-config.json /home/node/.n8n/config/
+COPY --chown=node:node fallback-jobs.json /home/node/.n8n/
+COPY --chown=node:node start-n8n-latest.sh /home/node/
 
-# Expose default n8n port
-EXPOSE 5678
+# Make startup script executable
+USER root
+RUN chmod +x /home/node/start-n8n-latest.sh
+USER node
 
-# Healthcheck for Railway (ensures service is reachable)
-HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=6 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1
+# Environment variables for browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PLAYWRIGHT_STEALTH=true
+ENV PUPPETEER_STEALTH=true
+ENV DISPLAY=:99
 
-# Start n8n via custom script
-ENTRYPOINT ["/usr/local/bin/start-n8n"]
+# Disable health check temporarily to test if n8n starts
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=120s \
+#   CMD curl -f http://localhost:${PORT:-5678}/ || exit 1
+
+EXPOSE $PORT
+
+CMD ["/home/node/start-n8n-latest.sh"]
