@@ -14,12 +14,12 @@ export WEBHOOK_URL=https://${RAILWAY_STATIC_URL}
 
 # n8n Authentication (v1.68+)
 export N8N_USER_MANAGEMENT_DISABLED=false
-export N8N_OWNER_EMAIL=${N8N_OWNER_EMAIL}
-export N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+export N8N_OWNER_EMAIL=${N8N_OWNER_EMAIL:-vdr1800@gmail.com}
+export N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-$(openssl rand -hex 32 2>/dev/null || echo "default-key-change-in-production")}
 
 # Database Configuration (SQLite for simplicity)
 export DB_TYPE=sqlite
-export DB_SQLITE_DATABASE=/home/pwuser/.n8n/database.sqlite
+export DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
 export DB_SQLITE_VACUUM_ON_STARTUP=true
 
 # Execution Settings for High Volume Job Automation
@@ -50,7 +50,7 @@ export GENERIC_TIMEZONE=America/New_York
 export TZ=America/New_York
 
 # Browser Automation Settings (Ubuntu + Playwright)
-export PLAYWRIGHT_BROWSERS_PATH=/home/pwuser/.cache/ms-playwright
+export PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=false
 export DISPLAY=:99
 
@@ -61,11 +61,21 @@ export N8N_CONCURRENCY_PRODUCTION=100
 export N8N_EXTERNAL_FRONTEND_HOOKS_URLS=${WEBHOOK_URL}
 
 echo "✅ n8n v1.68+ configured for massive job automation"
+echo "🌐 n8n URL: ${WEBHOOK_URL}"
+echo "📧 Owner Email: ${N8N_OWNER_EMAIL}"
+echo "🔧 Database: SQLite"
+echo "🎭 Browsers: Playwright (Chromium + Firefox + Webkit)"
+echo "🎯 Max Concurrent Jobs: 100"
+
+# Initialize n8n database if first run
+if [ ! -f "/home/node/.n8n/database.sqlite" ]; then
+    echo "📦 Initializing n8n database..."
+    n8n db:migrate
+fi
 
 # Start virtual display for browsers (Ubuntu requirement)
 if command -v Xvfb >/dev/null 2>&1; then
-    # MODIFIED: Removed output redirection to see potential errors from Xvfb
-    Xvfb :99 -screen 0 1024x768x24 &
+    Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
     echo "🖥️  Virtual display started"
 fi
 
