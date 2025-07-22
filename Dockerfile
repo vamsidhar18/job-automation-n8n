@@ -1,23 +1,23 @@
-# n8n + Playwright on Ubuntu base for Railway Pro compatibility
-FROM ubuntu:22.04
+# ✅ Base n8n image
+FROM n8nio/n8n:1.68.0
 
-# Install Node.js and system dependencies
-RUN apt-get update && apt-get install -y \
+USER root
+
+# ✅ Install Playwright and dependencies
+RUN apk add --no-cache \
+    chromium \
+    chromium-chromedriver \
+    firefox \
+    webkit2gtk \
+    python3 \
+    py3-pip \
     curl \
-    wget \
-    gnupg \
-    lsb-release \
-    ca-certificates \
-    xvfb \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    jq \
+    git \
+    bash \
+    && rm -rf /var/cache/apk/*
 
-# Install n8n
-RUN npm install -g n8n@1.68.0
-
-# Install Playwright and browsers (Ubuntu native support)
+# ✅ Install Node.js packages for browser automation
 RUN npm install -g \
     playwright \
     puppeteer \
@@ -25,40 +25,39 @@ RUN npm install -g \
     puppeteer-extra-plugin-stealth \
     @playwright/test
 
-# Install Playwright browsers with dependencies (this works on Ubuntu!)
-RUN npx playwright install --with-deps chromium firefox webkit
+# ✅ Install Playwright browsers
+RUN npx playwright install chromium firefox webkit
 
-# Create n8n user and directories
-RUN useradd -m -s /bin/bash node
+# ✅ Set Playwright environment
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 USER node
-WORKDIR /home/node
 
+# ✅ Create n8n config folders
 RUN mkdir -p /home/node/.n8n/nodes \
     && mkdir -p /home/node/.n8n/custom \
     && mkdir -p /home/node/.n8n/workflows \
-    && mkdir -p /home/node/.n8n/credentials
+    && mkdir -p /home/node/.n8n/credentials \
+    && chown -R node:node /home/node/.n8n
 
-# Copy configuration files to the correct path
+# ✅ Copy n8n config and fallback job data
 COPY --chown=node:node n8n-config.json /home/node/.n8n/config/
 COPY --chown=node:node fallback-jobs.json /home/node/.n8n/
-COPY --chown=node:node start-n8n-latest.sh /home/node/
 
-# Make startup script executable
-USER root
-RUN chmod +x /home/node/start-n8n-latest.sh
-USER node
+# ✅ Healthcheck for Railway (runs on /healthz)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
+  CMD curl -f http://localhost:5678/healthz || exit 1
 
-# Environment variables for browsers
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PLAYWRIGHT_STEALTH=true
-ENV PUPPETEER_STEALTH=true
-ENV DISPLAY=:99
-
-# Health check - use n8n's default health endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s \
-  CMD curl -f http://localhost:${PORT:-5678}/ || exit 1
+# ✅ Volume for persistence
+VOLUME ["/home/node/.n8n"]
 
 EXPOSE $PORT
 
-CMD ["/home/node/start-n8n-latest.sh"]
+# ✅ Copy startup script
+COPY --chown=node:node start-n8n-latest.sh /home/node/
+RUN chmod +x /home/node/start-n8n-latest.sh
+
+# ✅ Run the custom startup script
+CMD ["/bin/bash", "/home/node/start-n8n-latest.sh"]
