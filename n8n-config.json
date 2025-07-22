@@ -1,0 +1,17 @@
+{
+  "executions": {
+    "saveDataOnSuccess": true,
+    "saveDataOnError": true,
+    "saveExecutionProgress": true,
+    "pruneData": true
+  },
+  "security": {
+    "basicAuth": {
+      "active": false
+    }
+  },
+  "endpoints": {
+    "metrics": true
+  }
+}
+

@@ -1,0 +1,12 @@
+{
+  "build": {
+    "env": {
+      "N8N_OWNER_EMAIL": "vdr1800@gmail.com",
+      "EXECUTIONS_DATA_PRUNE": "true",
+      "N8N_METRICS": "true",
+      "N8N_LOG_LEVEL": "warn",
+      "NODE_ENV": "production"
+    }
+  }
+}
+

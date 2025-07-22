@@ -1,0 +1,70 @@
+{
+  "fallback_jobs": [
+    {
+      "id": "fallback_high_score",
+      "title": "Software Engineer",
+      "company": "Google",
+      "description": "Full-stack development with Python and React. Strong visa sponsorship program. H1B and international candidates encouraged to apply.",
+      "expected_response": {
+        "totalScore": 92,
+        "sponsorshipScore": 95,
+        "fitScore": 88,
+        "techScore": 90,
+        "companyScore": 95,
+        "shouldApply": true,
+        "reasoning": "Excellent company with explicit visa sponsorship and strong tech match",
+        "keyTechnologies": ["Python", "React", "Full-stack"],
+        "redFlags": [],
+        "positives": ["FAANG company", "Explicit H1B support", "Strong tech stack match"]
+      }
+    },
+    {
+      "id": "fallback_medium_score", 
+      "title": "Frontend Developer",
+      "company": "Medium Startup",
+      "description": "React and TypeScript development. Growing team. Remote work available.",
+      "expected_response": {
+        "totalScore": 72,
+        "sponsorshipScore": 60,
+        "fitScore": 80,
+        "techScore": 85,
+        "companyScore": 65,
+        "shouldApply": true,
+        "reasoning": "Good technical match but uncertain sponsorship prospects",
+        "keyTechnologies": ["React", "TypeScript", "Frontend"],
+        "redFlags": ["No explicit visa sponsorship mentioned"],
+        "positives": ["Modern tech stack", "Remote work", "Growing company"]
+      }
+    },
+    {
+      "id": "fallback_low_score",
+      "title": "Software Developer",
+      "company": "Government Contractor",
+      "description": "C++ development for defense systems. Security clearance required. US citizens only.",
+      "expected_response": {
+        "totalScore": 25,
+        "sponsorshipScore": 0,
+        "fitScore": 45,
+        "techScore": 40,
+        "companyScore": 50,
+        "shouldApply": false,
+        "reasoning": "Explicitly excludes non-citizens, no visa sponsorship possible",
+        "keyTechnologies": ["C++", "Defense", "Systems"],
+        "redFlags": ["US citizens only", "Security clearance required", "No H1B sponsorship"],
+        "positives": ["Stable government work"]
+      }
+    }
+  ],
+  "api_fallback_responses": {
+    "api_down_message": "FastAPI temporarily unavailable - using fallback scoring",
+    "fallback_scoring_rules": {
+      "high_sponsorship_keywords": ["H1B", "visa sponsorship", "international candidates", "global talent"],
+      "company_tiers": {
+        "tier_1": ["Google", "Microsoft", "Amazon", "Meta", "Apple", "Netflix"],
+        "tier_2": ["Tesla", "OpenAI", "Stripe", "Uber", "Airbnb"],
+        "tier_3": ["startups", "medium companies"]
+      },
+      "auto_reject_keywords": ["US citizens only", "security clearance", "no visa", "citizens required"]
+    }
+  }
+}
