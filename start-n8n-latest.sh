@@ -79,7 +79,23 @@ if command -v Xvfb >/dev/null 2>&1; then
     echo "🖥️  Virtual display started"
 fi
 
+# Create a simple healthcheck endpoint using netcat
+create_healthcheck() {
+    while true; do
+        echo -e "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nOK" | nc -l -p 8080 -q 1
+    done
+}
+
+# Start healthcheck server in background (if nc is available)
+if command -v nc >/dev/null 2>&1; then
+    create_healthcheck &
+    echo "🏥 Healthcheck server started on port 8080"
+fi
+
 echo "🚀 Starting n8n with full Playwright support..."
+
+# Wait a moment for everything to initialize
+sleep 5
 
 # Start n8n with job automation focus
 exec n8n start
