@@ -1,21 +1,19 @@
-# Original n8n + Playwright architecture for massive job automation
-# Requires Railway Pro (32GB limit) for full features
+# n8n + Full Playwright Architecture for Railway Pro
+# Supports all browsers, stealth mode, and advanced automation
 FROM n8nio/n8n:1.68.0
 
 USER root
 
-# Install all browsers and dependencies for maximum compatibility
+# Install system dependencies first
 RUN apk add --no-cache \
     chromium \
-    chromium-chromedriver \
     firefox \
-    webkit2gtk \
-    python3 \
-    py3-pip \
     curl \
     jq \
     git \
     bash \
+    python3 \
+    py3-pip \
     dbus \
     xvfb \
     && rm -rf /var/cache/apk/*
@@ -31,8 +29,8 @@ RUN npm install -g \
     @playwright/test \
     && npm cache clean --force
 
-# Install all Playwright browsers with dependencies
-RUN npx playwright install --with-deps chromium firefox webkit
+# Install Playwright browsers (this will work on Railway Pro!)
+RUN npx playwright install --with-deps
 
 # Set up comprehensive browser environment
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -41,10 +39,10 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 ENV CHROME_BIN=/usr/bin/chromium-browser
 ENV FIREFOX_BIN=/usr/bin/firefox
 
-# Advanced browser flags for stealth and compatibility
-ENV CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --disable-web-security --disable-features=VizDisplayCompositor --disable-blink-features=AutomationControlled"
+# Advanced browser flags for maximum stealth
+ENV CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --disable-web-security --disable-features=VizDisplayCompositor --disable-blink-features=AutomationControlled --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding"
 
-# Stealth mode environment variables
+# Enable stealth mode
 ENV PLAYWRIGHT_STEALTH=true
 ENV PUPPETEER_STEALTH=true
 
