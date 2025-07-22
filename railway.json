@@ -1,12 +1,33 @@
 {
+  "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "env": {
-      "N8N_OWNER_EMAIL": "vdr1800@gmail.com",
-      "EXECUTIONS_DATA_PRUNE": "true",
-      "N8N_METRICS": "true",
-      "N8N_LOG_LEVEL": "warn",
-      "NODE_ENV": "production"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "/home/node/start-n8n-latest.sh",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/healthz",
+    "healthcheckTimeout": 30
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "N8N_ENCRYPTION_KEY": {
+          "generator": {
+            "type": "hex",
+            "byteLength": 32
+          }
+        },
+        "N8N_OWNER_EMAIL": "vdr1800@gmail.com",
+        "N8N_METRICS": "true",
+        "N8N_LOG_LEVEL": "warn",
+        "EXECUTIONS_DATA_PRUNE": "true",
+        "EXECUTIONS_DATA_MAX_AGE": "168",
+        "DB_TYPE": "sqlite"
+      }
     }
   }
 }
-
