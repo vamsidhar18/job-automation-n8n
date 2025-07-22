@@ -13,20 +13,23 @@ RUN apt-get update && apt-get install -y \
     wget \
     sqlite3 \
     xvfb \
+    sed \
     && rm -rf /var/lib/apt/lists/*
 RUN npm install -g n8n
 
-# CORRECTED: Run playwright install as root to allow system dependency installation
+# Run playwright install as root to allow system dependency installation
 RUN npx playwright install --with-deps
 
 # Create the home and config directory for the non-root user 'pwuser'
-# The 'pwuser' is created by the base image
 RUN mkdir -p /home/pwuser/.n8n && chown -R pwuser:pwuser /home/pwuser
 
 # Copy config files and set ownership to the non-root user
 COPY --chown=pwuser:pwuser n8n-config.json /home/pwuser/.n8n/config.json
 COPY start-n8n-latest.sh /usr/local/bin/start-n8n
 RUN chmod +x /usr/local/bin/start-n8n
+
+# ADDED: Fix Windows line endings in the script to make it executable on Linux
+RUN sed -i 's/\r$//' /usr/local/bin/start-n8n
 
 # NOW we switch to the non-root user for security
 USER pwuser
