@@ -59,7 +59,7 @@ RUN chmod +x /home/node/start-n8n-latest.sh
 
 # Healthcheck for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
-  CMD curl -f http://localhost:${PORT:-5678}/healthz || exit 1
+  CMD curl -f http://localhost:${PORT:-5678}/ || exit 1
 
 # Expose n8n port
 EXPOSE ${PORT:-5678}
