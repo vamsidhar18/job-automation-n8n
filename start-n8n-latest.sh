@@ -15,7 +15,9 @@ export WEBHOOK_URL=https://${RAILWAY_STATIC_URL}
 # n8n Authentication (v1.68+)
 export N8N_USER_MANAGEMENT_DISABLED=false
 export N8N_OWNER_EMAIL=${N8N_OWNER_EMAIL:-vdr1800@gmail.com}
-export N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-$(openssl rand -hex 32 2>/dev/null || echo "default-key-change-in-production")}
+# CORRECTED: Removed fallback key generation.
+# N8N_ENCRYPTION_KEY must be set as a persistent environment variable in Railway to prevent credential loss.
+export N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
 
 # Database Configuration (SQLite for simplicity)
 export DB_TYPE=sqlite
@@ -62,16 +64,13 @@ export N8N_EXTERNAL_FRONTEND_HOOKS_URLS=${WEBHOOK_URL}
 
 echo "✅ n8n v1.68+ configured for massive job automation"
 echo "🌐 n8n URL: ${WEBHOOK_URL}"
-echo "📧 Owner Email: vdr1800@gmail.com"
+echo "📧 Owner Email: ${N8N_OWNER_EMAIL}"
 echo "🔧 Database: SQLite"
 echo "🎭 Browsers: Playwright (Chromium + Firefox + Webkit)"
 echo "🎯 Max Concurrent Jobs: 100"
 
-# Initialize n8n database if first run
-if [ ! -f "/home/node/.n8n/database.sqlite" ]; then
-    echo "📦 Initializing n8n database..."
-    n8n db:migrate
-fi
+# REMOVED: The n8n start command will handle database initialization automatically.
+# The previous `n8n db:migrate` command was incorrect for this purpose.
 
 # Start virtual display for browsers (Ubuntu requirement)
 if command -v Xvfb >/dev/null 2>&1; then
