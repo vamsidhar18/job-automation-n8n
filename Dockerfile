@@ -1,4 +1,4 @@
-# Latest n8n Dockerfile optimized for job automation
+# Latest n8n Dockerfile optimized for job automation (Railway Compatible)
 FROM n8nio/n8n:1.68.0
 
 USER root
@@ -52,9 +52,7 @@ COPY --chown=node:node fallback-jobs.json /home/node/.n8n/
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
   CMD curl -f http://localhost:${PORT:-5678}/healthz || exit 1
 
-# Volume for persistence (Railway will handle this)
-VOLUME ["/home/node/.n8n"]
-
+# Railway handles persistence automatically - no VOLUME needed
 EXPOSE $PORT
 
 # Custom startup script
