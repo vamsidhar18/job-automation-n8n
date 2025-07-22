@@ -55,9 +55,9 @@ ENV PLAYWRIGHT_STEALTH=true
 ENV PUPPETEER_STEALTH=true
 ENV DISPLAY=:99
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
-  CMD curl -f http://localhost:${PORT:-5678}/healthz || exit 1
+# Health check - use n8n's default health endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s \
+  CMD curl -f http://localhost:${PORT:-5678}/ || exit 1
 
 EXPOSE $PORT
 
