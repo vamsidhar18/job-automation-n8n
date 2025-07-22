@@ -1,63 +1,68 @@
-# ✅ Base n8n image
-FROM n8nio/n8n:1.68.0
+# Base Ubuntu image with Node.js (Ubuntu 22.04 LTS + Node 18)
+FROM node:18-bullseye-slim
 
-USER root
+# Set environment variables
+ENV N8N_VERSION=1.68.0
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV DEBIAN_FRONTEND=noninteractive
 
-# ✅ Install Playwright and dependencies
-RUN apk add --no-cache \
-    chromium \
-    chromium-chromedriver \
-    firefox \
-    webkit2gtk \
-    python3 \
-    py3-pip \
+# Install dependencies and browsers
+RUN apt-get update && apt-get install -y \
     curl \
-    jq \
-    git \
+    gnupg \
     bash \
-    && rm -rf /var/cache/apk/*
+    git \
+    ca-certificates \
+    chromium \
+    chromium-driver \
+    libgtk-3-0 \
+    libxss1 \
+    libasound2 \
+    libnss3 \
+    libxshmfence-dev \
+    libgbm-dev \
+    fonts-liberation \
+    libappindicator3-1 \
+    wget \
+    unzip \
+    python3 \
+    python3-pip \
+    xvfb \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# ✅ Install Node.js packages for browser automation
+# Install n8n
+RUN npm install -g n8n@${N8N_VERSION}
+
+# Install Playwright and Puppeteer tools globally
 RUN npm install -g \
     playwright \
     puppeteer \
     puppeteer-extra \
     puppeteer-extra-plugin-stealth \
-    @playwright/test
+    @playwright/test && \
+    npx playwright install chromium firefox webkit
 
-# ✅ Install Playwright browsers
-RUN npx playwright install chromium firefox webkit
+# Create n8n working directory
+RUN mkdir -p /home/node/.n8n
+WORKDIR /home/node
 
-# ✅ Set Playwright environment
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# Add configuration and fallback files
+COPY n8n-config.json /home/node/.n8n/config/
+COPY fallback-jobs.json /home/node/.n8n/
 
-USER node
-
-# ✅ Create n8n config folders
-RUN mkdir -p /home/node/.n8n/nodes \
-    && mkdir -p /home/node/.n8n/custom \
-    && mkdir -p /home/node/.n8n/workflows \
-    && mkdir -p /home/node/.n8n/credentials \
-    && chown -R node:node /home/node/.n8n
-
-# ✅ Copy n8n config and fallback job data
-COPY --chown=node:node n8n-config.json /home/node/.n8n/config/
-COPY --chown=node:node fallback-jobs.json /home/node/.n8n/
-
-# ✅ Healthcheck for Railway (runs on /healthz)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
-  CMD curl -f http://localhost:5678/healthz || exit 1
-
-# ✅ Volume for persistence
-VOLUME ["/home/node/.n8n"]
-
-EXPOSE $PORT
-
-# ✅ Copy startup script
-COPY --chown=node:node start-n8n-latest.sh /home/node/
+# Add start script
+COPY start-n8n-latest.sh /home/node/
 RUN chmod +x /home/node/start-n8n-latest.sh
 
-# ✅ Run the custom startup script
-CMD ["/bin/bash", "/home/node/start-n8n-latest.sh"]
+# Healthcheck for Railway
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
+  CMD curl -f http://localhost:${PORT:-5678}/healthz || exit 1
+
+# Expose n8n port
+EXPOSE ${PORT:-5678}
+
+# Start n8n
+CMD ["/home/node/start-n8n-latest.sh"]
