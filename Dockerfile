@@ -1,73 +1,64 @@
-# n8n + Full Playwright Architecture for Railway Pro
-# Supports all browsers, stealth mode, and advanced automation
-FROM n8nio/n8n:1.68.0
+# n8n + Playwright on Ubuntu base for Railway Pro compatibility
+FROM ubuntu:22.04
 
-USER root
-
-# Install system dependencies first
-RUN apk add --no-cache \
-    chromium \
-    firefox \
+# Install Node.js and system dependencies
+RUN apt-get update && apt-get install -y \
     curl \
-    jq \
-    git \
-    bash \
-    python3 \
-    py3-pip \
-    dbus \
-    xvfb \
-    && rm -rf /var/cache/apk/*
+    wget \
+    gnupg \
+    lsb-release \
+    ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install full Node.js automation stack
+# Install n8n
+RUN npm install -g n8n@1.68.0
+
+# Install Playwright and browsers (Ubuntu native support)
 RUN npm install -g \
     playwright \
     puppeteer \
     puppeteer-extra \
     puppeteer-extra-plugin-stealth \
-    puppeteer-extra-plugin-anonymize-ua \
-    puppeteer-extra-plugin-block-resources \
-    @playwright/test \
-    && npm cache clean --force
+    @playwright/test
 
-# Install Playwright browsers (this will work on Railway Pro!)
-RUN npx playwright install --with-deps
+# Install Playwright browsers with dependencies (this works on Ubuntu!)
+RUN npx playwright install --with-deps chromium firefox webkit
 
-# Set up comprehensive browser environment
+# Create n8n user
+RUN useradd -m -s /bin/bash n8n
+
+# Set up n8n directories
+USER n8n
+WORKDIR /home/n8n
+
+RUN mkdir -p /home/n8n/.n8n/nodes \
+    && mkdir -p /home/n8n/.n8n/custom \
+    && mkdir -p /home/n8n/.n8n/workflows \
+    && mkdir -p /home/n8n/.n8n/credentials
+
+# Copy configuration files
+COPY --chown=n8n:n8n n8n-config.json /home/n8n/.n8n/config/
+COPY --chown=n8n:n8n fallback-jobs.json /home/n8n/.n8n/
+COPY --chown=n8n:n8n start-n8n-latest.sh /home/n8n/
+RUN chmod +x /home/n8n/start-n8n-latest.sh
+
+# Environment variables for browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/n8n/.cache/ms-playwright
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-ENV CHROME_BIN=/usr/bin/chromium-browser
-ENV FIREFOX_BIN=/usr/bin/firefox
-
-# Advanced browser flags for maximum stealth
-ENV CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --disable-web-security --disable-features=VizDisplayCompositor --disable-blink-features=AutomationControlled --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding"
-
-# Enable stealth mode
 ENV PLAYWRIGHT_STEALTH=true
 ENV PUPPETEER_STEALTH=true
 
-USER node
+# Health check
+USER root
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+USER n8n
 
-# Create comprehensive n8n directory structure
-RUN mkdir -p /home/node/.n8n/nodes \
-    && mkdir -p /home/node/.n8n/custom \
-    && mkdir -p /home/node/.n8n/workflows \
-    && mkdir -p /home/node/.n8n/credentials \
-    && mkdir -p /home/node/.n8n/logs \
-    && chown -R node:node /home/node/.n8n
-
-# Copy all configuration files
-COPY --chown=node:node n8n-config.json /home/node/.n8n/config/
-COPY --chown=node:node fallback-jobs.json /home/node/.n8n/
-
-# Health check for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
   CMD curl -f http://localhost:${PORT:-5678}/healthz || exit 1
 
 EXPOSE $PORT
 
-# Full-featured startup script
-COPY --chown=node:node start-n8n-latest.sh /home/node/
-RUN chmod +x /home/node/start-n8n-latest.sh
-
-CMD ["/home/node/start-n8n-latest.sh"]
+CMD ["/home/n8n/start-n8n-latest.sh"]
