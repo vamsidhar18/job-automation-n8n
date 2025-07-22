@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     lsb-release \
     ca-certificates \
+    xvfb \
     && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
@@ -27,38 +28,37 @@ RUN npm install -g \
 # Install Playwright browsers with dependencies (this works on Ubuntu!)
 RUN npx playwright install --with-deps chromium firefox webkit
 
-# Create n8n user
-RUN useradd -m -s /bin/bash n8n
+# Create n8n user and directories
+RUN useradd -m -s /bin/bash node
+USER node
+WORKDIR /home/node
 
-# Set up n8n directories
-USER n8n
-WORKDIR /home/n8n
+RUN mkdir -p /home/node/.n8n/nodes \
+    && mkdir -p /home/node/.n8n/custom \
+    && mkdir -p /home/node/.n8n/workflows \
+    && mkdir -p /home/node/.n8n/credentials
 
-RUN mkdir -p /home/n8n/.n8n/nodes \
-    && mkdir -p /home/n8n/.n8n/custom \
-    && mkdir -p /home/n8n/.n8n/workflows \
-    && mkdir -p /home/n8n/.n8n/credentials
+# Copy configuration files to the correct path
+COPY --chown=node:node n8n-config.json /home/node/.n8n/config/
+COPY --chown=node:node fallback-jobs.json /home/node/.n8n/
+COPY --chown=node:node start-n8n-latest.sh /home/node/
 
-# Copy configuration files
-COPY --chown=n8n:n8n n8n-config.json /home/n8n/.n8n/config/
-COPY --chown=n8n:n8n fallback-jobs.json /home/n8n/.n8n/
-COPY --chown=n8n:n8n start-n8n-latest.sh /home/n8n/
-RUN chmod +x /home/n8n/start-n8n-latest.sh
+# Make startup script executable
+USER root
+RUN chmod +x /home/node/start-n8n-latest.sh
+USER node
 
 # Environment variables for browsers
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/n8n/.cache/ms-playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PLAYWRIGHT_STEALTH=true
 ENV PUPPETEER_STEALTH=true
+ENV DISPLAY=:99
 
 # Health check
-USER root
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-USER n8n
-
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
   CMD curl -f http://localhost:${PORT:-5678}/healthz || exit 1
 
 EXPOSE $PORT
 
-CMD ["/home/n8n/start-n8n-latest.sh"]
+CMD ["/home/node/start-n8n-latest.sh"]
